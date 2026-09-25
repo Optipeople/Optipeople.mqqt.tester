@@ -1,0 +1,11 @@
+# Local settings contain IoT Hub device keys - never commit
+settings.json
+
+# Build outputs
+build/
+dist/
+release/
+Opti-MQTT-Tester-Dist/
+*.zip
+__pycache__/
+*.pyc

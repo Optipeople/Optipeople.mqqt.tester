@@ -1,0 +1,13 @@
+{
+  "name": "opti-mqtt-tester",
+  "private": true,
+  "version": "2.0.0",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "icon": "tauri icon src-tauri/app-icon.svg"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}
