@@ -316,19 +316,19 @@ mod tests {
         assert!(tok.ends_with(&format!("&se={exp}")));
     }
 
-    /// Reference value produced by the original Python tool.
+    /// Reference value computed with the same algorithm as the original Python tool (dummy key).
     #[test]
     fn matches_python_tool() {
         let tok = sign_sas(
             "IotHubProdOptipeople.azure-devices.net/devices/OM01001",
-            "q6RWrm0crVX47qm6/8jeDEnpn2VfdTMccA6zvw53NjI=",
+            "b3B0aS1tcXR0LXRlc3Rlci10ZXN0LWtleS0wMDAwMDA=",
             2_000_000_000,
         )
         .unwrap();
         assert_eq!(
             tok,
             "SharedAccessSignature sr=IotHubProdOptipeople.azure-devices.net%2Fdevices%2FOM01001\
-             &sig=vKYwZrIosA%2FxM%2FVFa4T9nmQttQsrCmFT3K%2FwoD3Q98w%3D&se=2000000000"
+             &sig=J5SseDjHoCUBzPm2ds795TrsrXVqBxOAVixFGXwdWVk%3D&se=2000000000"
         );
     }
 
