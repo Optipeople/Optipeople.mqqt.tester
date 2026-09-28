@@ -2,7 +2,7 @@
 
 Windows desktop tool for PLC technicians: generates the values for the PLC's
 MQTT Client block (broker, client ID, username, SAS token, topic), builds a
-sample MachineState / PartCounter / Telemetry payload, and sends a test message
+sample MachineState / PartCounter / Telemetry / BatchSetting payload, and sends a test message
 to the OptiPeople Azure IoT Hub so the result can be checked on
 portal.optipeople.dk.
 

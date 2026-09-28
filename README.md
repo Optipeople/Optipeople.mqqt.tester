@@ -36,8 +36,8 @@ protected your PC". Click **More info → Run anyway**.
 2. **PLC MQTT Client block**: copy the generated values into the PLC. The
    token expiry is shown under the fields. **Regenerate token** issues a fresh
    one, and **Export config** saves all values to a text file for handover.
-3. **Test message**: pick *Machine state*, *Part counter* or *Telemetry*, fill
-   in the value and click **Send test message**. The *Payload* panel shows
+3. **Test message**: pick *Machine state*, *Part counter*, *Telemetry* or
+   *Batch / order*, fill in the value and click **Send test message**. The *Payload* panel shows
    the JSON the PLC must publish.
 4. **Activity**: check the connect/send result, then verify the data in the
    portal.
@@ -82,6 +82,21 @@ All timestamps are UTC ISO 8601. All values are sent as strings.
 ```json
 {"time":"2026-09-28T10:00:00.000Z","inputType":"Telemetry",
  "functions":[{"deviceId":"OM01001","name":"vibration","value":"1.23","type":"2","time":"2026-09-28T10:00:00.000Z"}]}
+```
+
+**BatchSetting**: starts a new unit (batch/order) on the machine. The keys are
+kept short to save space in the PLC:
+
+- `name`: the unit/batch name. Must not be empty.
+- `value`: always `startBatch`.
+- `e`: expected speed in units per hour. Optional: leave it out to keep the
+  expected speed already set for that unit in the portal.
+- `customFields`: optional list of `{"n": name, "v": value}` pairs.
+
+```json
+{"time":"2026-09-28T10:00:00.000Z","inputType":"BatchSetting",
+ "functions":[{"deviceId":"OM01001","name":"9025410002","value":"startBatch","e":"100","time":"2026-09-28T10:00:00.000Z",
+               "customFields":[{"n":"OrderNo","v":"9649952"}]}]}
 ```
 
 > **Rate limit:** do not publish more than one message per 5 seconds per
