@@ -96,6 +96,7 @@
           <button type="button" data-type="MachineState">Machine state</button>
           <button type="button" data-type="PartCounter">Part counter</button>
           <button type="button" data-type="Telemetry">Telemetry</button>
+          <button type="button" data-type="BatchSetting">Batch / order</button>
         </div>
 
         <div class="panel" data-panel="MachineState">
@@ -135,6 +136,24 @@
             </label>
           </div>
           <p class="note">Max one message per 5 seconds, or the device is throttled.</p>
+        </div>
+
+        <div class="panel" data-panel="BatchSetting">
+          <div class="row-part">
+            <label class="field">
+              <span class="field__label">Unit / batch name</span>
+              <input id="batchName" spellcheck="false" placeholder="e.g. 9025410002">
+            </label>
+            <label class="field">
+              <span class="field__label" title="Sent as &quot;e&quot;. Leave empty to keep the speed set in the portal.">Speed (parts/h)</span>
+              <input id="expectedSpeed" type="number" min="0" step="1" placeholder="Keep portal">
+            </label>
+          </div>
+          <label class="field">
+            <span class="field__label">Custom fields (optional, one per line: Name=Value)</span>
+            <textarea id="customFields" rows="2" spellcheck="false" placeholder="OrderNo=9649952"></textarea>
+          </label>
+          <p class="help">Starts a new unit (batch) on the machine. Leave speed empty so you don't overwrite the expected speed set in the portal.</p>
         </div>
 
       </div>

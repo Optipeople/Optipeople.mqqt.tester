@@ -4,7 +4,8 @@ Opti MQTT Tester
 A small GUI for PLC technicians to:
   1. Generate the exact values that go into an MQTT Client block on the PLC
      (broker host, port, client ID, username, password/SAS token, topic).
-  2. Build a sample JSON payload for MachineState, PartCounter or Telemetry.
+  2. Build a sample JSON payload for MachineState, PartCounter, Telemetry
+     or BatchSetting (order/batch/unit).
   3. Send a test message so the result can be verified in portal.optipeople.dk
      before the PLC is configured.
 
@@ -84,6 +85,17 @@ def build_payload(msg_type: str, device_id: str, fields: dict) -> dict:
             "type": fields["tag_type"],
             "time": now,
         }
+    elif msg_type == "BatchSetting":
+        # Short keys ("e", "n", "v") keep the PLC string small.
+        # Omitting "e" keeps the expected speed already set in the portal.
+        fn = {"deviceId": device_id, "name": fields["batch_name"].strip(), "value": "startBatch"}
+        expected = str(fields["expected_speed"]).strip()
+        if expected:
+            fn["e"] = expected
+        fn["time"] = now
+        custom = parse_custom_fields(fields.get("custom_fields", ""))
+        if custom:
+            fn["customFields"] = custom
     else:
         raise ValueError(f"Unknown message type: {msg_type}")
 
@@ -92,6 +104,16 @@ def build_payload(msg_type: str, device_id: str, fields: dict) -> dict:
         "inputType": msg_type,
         "functions": [fn],
     }
+
+
+def parse_custom_fields(text: str) -> list[dict]:
+    """'Name=Value' per line -> [{"n": "Name", "v": "Value"}, ...]"""
+    out = []
+    for line in text.splitlines():
+        name, _, value = line.partition("=")
+        if name.strip():
+            out.append({"n": name.strip(), "v": value.strip()})
+    return out
 
 
 def load_settings() -> dict:
@@ -225,7 +247,7 @@ class App(tk.Tk):
         type_box = ttk.Combobox(
             msg,
             textvariable=self.type_var,
-            values=["MachineState", "PartCounter", "Telemetry"],
+            values=["MachineState", "PartCounter", "Telemetry", "BatchSetting"],
             state="readonly",
             width=20,
         )
@@ -267,6 +289,13 @@ class App(tk.Tk):
                     self.tag_type_var.set(remembered["tag_type"])
                 if "tag_value" in remembered:
                     self.tag_value_var.set(remembered["tag_value"])
+            elif t == "BatchSetting":
+                if "batch_name" in remembered:
+                    self.batch_name_var.set(remembered["batch_name"])
+                if "expected_speed" in remembered:
+                    self.expected_speed_var.set(remembered["expected_speed"])
+                if "custom_fields" in remembered:
+                    self.custom_fields_text.insert("1.0", remembered["custom_fields"])
         except Exception:
             pass
         self._update_size()
@@ -324,6 +353,29 @@ class App(tk.Tk):
                 row=1, column=1, sticky="w", padx=4
             )
 
+        elif t == "BatchSetting":
+            ttk.Label(self.fields_frame, text="Unit / batch name:").grid(row=0, column=0, sticky="e", padx=4, pady=4)
+            self.batch_name_var = tk.StringVar(value="TestBatch")
+            ttk.Entry(self.fields_frame, textvariable=self.batch_name_var, width=30).grid(
+                row=0, column=1, sticky="w", padx=4
+            )
+
+            ttk.Label(self.fields_frame, text="Speed (parts/h):").grid(row=1, column=0, sticky="e", padx=4, pady=4)
+            self.expected_speed_var = tk.StringVar(value="")
+            ttk.Entry(self.fields_frame, textvariable=self.expected_speed_var, width=12).grid(
+                row=1, column=1, sticky="w", padx=4
+            )
+            ttk.Label(self.fields_frame, text="(empty = keep the speed set in the portal)", foreground="#666").grid(
+                row=1, column=2, sticky="w", padx=4
+            )
+
+            ttk.Label(self.fields_frame, text="Custom fields:").grid(row=2, column=0, sticky="ne", padx=4, pady=4)
+            self.custom_fields_text = tk.Text(self.fields_frame, width=30, height=3, font=("Consolas", 9))
+            self.custom_fields_text.grid(row=2, column=1, sticky="w", padx=4, pady=4)
+            ttk.Label(self.fields_frame, text="(optional, one per line: Name=Value)", foreground="#666").grid(
+                row=2, column=2, sticky="nw", padx=4, pady=4
+            )
+
         self._update_size()
 
     # ---- helpers ----------------------------------------------------------
@@ -338,6 +390,12 @@ class App(tk.Tk):
                 "tag_name": self.tag_name_var.get(),
                 "tag_type": self.tag_type_var.get(),
                 "tag_value": self.tag_value_var.get(),
+            }
+        if t == "BatchSetting":
+            return {
+                "batch_name": self.batch_name_var.get(),
+                "expected_speed": self.expected_speed_var.get(),
+                "custom_fields": self.custom_fields_text.get("1.0", "end-1c"),
             }
         return {}
 
@@ -509,6 +567,9 @@ class App(tk.Tk):
         threading.Thread(target=self._send, daemon=True).start()
 
     def _send(self):
+        if self.type_var.get() == "BatchSetting" and not self.batch_name_var.get().strip():
+            messagebox.showerror("Payload error", "Unit / batch name is required. Opti rejects a batch without a name.")
+            return
         try:
             payload = self._current_payload()
         except Exception as e:

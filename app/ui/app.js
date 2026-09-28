@@ -8,9 +8,10 @@ const DEFAULTS = {
   useCa: true,
   caFile: "",
   msgType: "MachineState",
-  fields: { state: "Runtime", counter: "10", tagName: "vibration", tagType: "2", tagValue: "1.23" },
+  fields: { state: "Runtime", counter: "10", tagName: "vibration", tagType: "2", tagValue: "1.23", batchName: "TestBatch", expectedSpeed: "", customFields: "" },
 };
 const STATES = ["Runtime", "Downtime", "Stopped", "Offline"];
+const MSG_TYPES = ["MachineState", "PartCounter", "Telemetry", "BatchSetting"];
 const PLC_ROWS = [
   ["brokerHost", "Broker host"],
   ["port", "Port"],
@@ -46,7 +47,7 @@ function normalise(s) {
     msgType: s.msgType ?? s.msg_type ?? DEFAULTS.msgType,
     fields: {
       ...DEFAULTS.fields,
-      ...pick(f, ["state", "counter", "tagName", "tagType", "tagValue"]),
+      ...pick(f, ["state", "counter", "tagName", "tagType", "tagValue", "batchName", "expectedSpeed", "customFields"]),
       ...(f.tag_name != null && { tagName: f.tag_name }),
       ...(f.tag_type != null && { tagType: f.tag_type }),
       ...(f.tag_value != null && { tagValue: f.tag_value }),
@@ -70,6 +71,9 @@ function collect() {
       tagName: $("tagName").value,
       tagType: $("tagType").value,
       tagValue: $("tagValue").value,
+      batchName: $("batchName").value,
+      expectedSpeed: $("expectedSpeed").value,
+      customFields: $("customFields").value,
     },
   };
 }
@@ -86,7 +90,10 @@ function apply(s) {
   $("tagName").value = s.fields.tagName;
   $("tagType").value = s.fields.tagType;
   $("tagValue").value = s.fields.tagValue;
-  setType(["MachineState", "PartCounter", "Telemetry"].includes(s.msgType) ? s.msgType : DEFAULTS.msgType);
+  $("batchName").value = s.fields.batchName;
+  $("expectedSpeed").value = s.fields.expectedSpeed;
+  $("customFields").value = s.fields.customFields;
+  setType(MSG_TYPES.includes(s.msgType) ? s.msgType : DEFAULTS.msgType);
 }
 
 const saveSoon = debounce(() => invoke("save_settings", { settings: collect() }).catch(() => {}), 400);
@@ -197,10 +204,26 @@ function buildPayload() {
     fn = { deviceId, name: "state", value: s.fields.state, time: now };
   } else if (msgType === "PartCounter") {
     fn = { deviceId, name: "counter", value: String(s.fields.counter), time: now };
+  } else if (msgType === "BatchSetting") {
+    // Short keys ("e", "n", "v") keep the PLC string small. Omitting "e" keeps the speed set in the portal.
+    fn = { deviceId, name: s.fields.batchName.trim(), value: "startBatch" };
+    const e = String(s.fields.expectedSpeed).trim();
+    if (e) fn.e = e;
+    fn.time = now;
+    const custom = parseCustomFields(s.fields.customFields);
+    if (custom.length) fn.customFields = custom;
   } else {
     fn = { deviceId, name: s.fields.tagName, value: String(s.fields.tagValue), type: s.fields.tagType, time: now };
   }
   return { time: now, inputType: msgType, functions: [fn] };
+}
+
+function parseCustomFields(text) {
+  return String(text)
+    .split(/\r?\n/)
+    .map((line) => line.split("="))
+    .filter(([n]) => n.trim())
+    .map(([n, ...v]) => ({ n: n.trim(), v: v.join("=").trim() }));
 }
 
 function renderPayload() {
@@ -257,6 +280,10 @@ function send() {
   const wait = lastSend + SEND_COOLDOWN_MS - Date.now();
   if (wait > 0) {
     log("info", `Wait ${Math.ceil(wait / 1000)} s before sending again (max one message per 5 seconds).`);
+    return;
+  }
+  if (msgType === "BatchSetting" && !$("batchName").value.trim()) {
+    log("error", "Unit / batch name is required. Opti rejects a batch without a name.");
     return;
   }
   const p = deviceParams();
@@ -406,7 +433,7 @@ async function init() {
   for (const id of ["hub", "device", "key", "expiryDays"]) {
     $(id).addEventListener("input", () => { regenerateSoon(); renderPayload(); renderExpiryHint(); saveSoon(); });
   }
-  for (const id of ["state", "counter", "tagName", "tagType", "tagValue"]) {
+  for (const id of ["state", "counter", "tagName", "tagType", "tagValue", "batchName", "expectedSpeed", "customFields"]) {
     $(id).addEventListener("input", () => { renderPayload(); saveSoon(); });
   }
   $("caFile").addEventListener("input", saveSoon);
