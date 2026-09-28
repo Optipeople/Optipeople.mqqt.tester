@@ -128,6 +128,7 @@ p { margin: 0; }
 .form { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
 .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .row-3 { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 12px; }
+.row-part { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .field__label { font-size: 12.5px; color: var(--label); }
 .help { font-size: 12.5px; color: var(--help); }
@@ -198,7 +199,7 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
 .icon-btn:disabled { opacity: .35; cursor: default; background: transparent; }
 
 /* ---------- Segmented + chips ---------- */
-.segmented { display: grid; grid-template-columns: repeat(3, 1fr); padding: 3px; gap: 3px; background: var(--g-150); border-radius: 8px; }
+.segmented { display: grid; grid-template-columns: repeat(4, 1fr); padding: 3px; gap: 3px; background: var(--g-150); border-radius: 8px; }
 .segmented button {
   height: 30px; border: 0; border-radius: 6px; background: transparent;
   font-weight: 500; color: var(--g-500); cursor: pointer;

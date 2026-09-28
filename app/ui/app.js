@@ -8,9 +8,10 @@ const DEFAULTS = {
   useCa: true,
   caFile: "",
   msgType: "MachineState",
-  fields: { state: "Runtime", counter: "10", tagName: "vibration", tagType: "2", tagValue: "1.23" },
+  fields: { state: "Runtime", counter: "10", tagName: "vibration", tagType: "2", tagValue: "1.23", partInfo: "OrderX;ItemY;PartZ", expectedSpeed: "100" },
 };
 const STATES = ["Runtime", "Downtime", "Stopped", "Offline"];
+const MSG_TYPES = ["MachineState", "PartCounter", "Telemetry", "AddPartInformation"];
 const PLC_ROWS = [
   ["brokerHost", "Broker host"],
   ["port", "Port"],
@@ -46,7 +47,7 @@ function normalise(s) {
     msgType: s.msgType ?? s.msg_type ?? DEFAULTS.msgType,
     fields: {
       ...DEFAULTS.fields,
-      ...pick(f, ["state", "counter", "tagName", "tagType", "tagValue"]),
+      ...pick(f, ["state", "counter", "tagName", "tagType", "tagValue", "partInfo", "expectedSpeed"]),
       ...(f.tag_name != null && { tagName: f.tag_name }),
       ...(f.tag_type != null && { tagType: f.tag_type }),
       ...(f.tag_value != null && { tagValue: f.tag_value }),
@@ -70,6 +71,8 @@ function collect() {
       tagName: $("tagName").value,
       tagType: $("tagType").value,
       tagValue: $("tagValue").value,
+      partInfo: $("partInfo").value,
+      expectedSpeed: $("expectedSpeed").value,
     },
   };
 }
@@ -86,7 +89,9 @@ function apply(s) {
   $("tagName").value = s.fields.tagName;
   $("tagType").value = s.fields.tagType;
   $("tagValue").value = s.fields.tagValue;
-  setType(["MachineState", "PartCounter", "Telemetry"].includes(s.msgType) ? s.msgType : DEFAULTS.msgType);
+  $("partInfo").value = s.fields.partInfo;
+  $("expectedSpeed").value = s.fields.expectedSpeed;
+  setType(MSG_TYPES.includes(s.msgType) ? s.msgType : DEFAULTS.msgType);
 }
 
 const saveSoon = debounce(() => invoke("save_settings", { settings: collect() }).catch(() => {}), 400);
@@ -197,6 +202,8 @@ function buildPayload() {
     fn = { deviceId, name: "state", value: s.fields.state, time: now };
   } else if (msgType === "PartCounter") {
     fn = { deviceId, name: "counter", value: String(s.fields.counter), time: now };
+  } else if (msgType === "AddPartInformation") {
+    fn = { deviceId, name: s.fields.partInfo, value: "null", expectedSpeed: String(s.fields.expectedSpeed), time: now };
   } else {
     fn = { deviceId, name: s.fields.tagName, value: String(s.fields.tagValue), type: s.fields.tagType, time: now };
   }
@@ -406,7 +413,7 @@ async function init() {
   for (const id of ["hub", "device", "key", "expiryDays"]) {
     $(id).addEventListener("input", () => { regenerateSoon(); renderPayload(); renderExpiryHint(); saveSoon(); });
   }
-  for (const id of ["state", "counter", "tagName", "tagType", "tagValue"]) {
+  for (const id of ["state", "counter", "tagName", "tagType", "tagValue", "partInfo", "expectedSpeed"]) {
     $(id).addEventListener("input", () => { renderPayload(); saveSoon(); });
   }
   $("caFile").addEventListener("input", saveSoon);

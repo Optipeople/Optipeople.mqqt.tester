@@ -4,7 +4,8 @@ Opti MQTT Tester
 A small GUI for PLC technicians to:
   1. Generate the exact values that go into an MQTT Client block on the PLC
      (broker host, port, client ID, username, password/SAS token, topic).
-  2. Build a sample JSON payload for MachineState, PartCounter or Telemetry.
+  2. Build a sample JSON payload for MachineState, PartCounter, Telemetry
+     or AddPartInformation (order/batch/unit).
   3. Send a test message so the result can be verified in portal.optipeople.dk
      before the PLC is configured.
 
@@ -82,6 +83,14 @@ def build_payload(msg_type: str, device_id: str, fields: dict) -> dict:
             "name": fields["tag_name"],
             "value": str(fields["tag_value"]),
             "type": fields["tag_type"],
+            "time": now,
+        }
+    elif msg_type == "AddPartInformation":
+        fn = {
+            "deviceId": device_id,
+            "name": fields["part_info"],
+            "value": "null",
+            "expectedSpeed": str(fields["expected_speed"]),
             "time": now,
         }
     else:
@@ -225,7 +234,7 @@ class App(tk.Tk):
         type_box = ttk.Combobox(
             msg,
             textvariable=self.type_var,
-            values=["MachineState", "PartCounter", "Telemetry"],
+            values=["MachineState", "PartCounter", "Telemetry", "AddPartInformation"],
             state="readonly",
             width=20,
         )
@@ -267,6 +276,11 @@ class App(tk.Tk):
                     self.tag_type_var.set(remembered["tag_type"])
                 if "tag_value" in remembered:
                     self.tag_value_var.set(remembered["tag_value"])
+            elif t == "AddPartInformation":
+                if "part_info" in remembered:
+                    self.part_info_var.set(remembered["part_info"])
+                if "expected_speed" in remembered:
+                    self.expected_speed_var.set(remembered["expected_speed"])
         except Exception:
             pass
         self._update_size()
@@ -324,6 +338,24 @@ class App(tk.Tk):
                 row=1, column=1, sticky="w", padx=4
             )
 
+        elif t == "AddPartInformation":
+            ttk.Label(self.fields_frame, text="Order / item / part:").grid(row=0, column=0, sticky="e", padx=4, pady=4)
+            self.part_info_var = tk.StringVar(value="OrderX;ItemY;PartZ")
+            ttk.Entry(self.fields_frame, textvariable=self.part_info_var, width=30).grid(
+                row=0, column=1, sticky="w", padx=4
+            )
+
+            ttk.Label(self.fields_frame, text="Expected speed (parts/h):").grid(row=1, column=0, sticky="e", padx=4, pady=4)
+            self.expected_speed_var = tk.StringVar(value="100")
+            ttk.Entry(self.fields_frame, textvariable=self.expected_speed_var, width=12).grid(
+                row=1, column=1, sticky="w", padx=4
+            )
+            ttk.Label(
+                self.fields_frame,
+                text="Sets the order, batch or unit the machine is running. Separate the parts with semicolons.",
+                foreground="#666",
+            ).grid(row=2, column=0, columnspan=3, sticky="w", padx=4)
+
         self._update_size()
 
     # ---- helpers ----------------------------------------------------------
@@ -338,6 +370,11 @@ class App(tk.Tk):
                 "tag_name": self.tag_name_var.get(),
                 "tag_type": self.tag_type_var.get(),
                 "tag_value": self.tag_value_var.get(),
+            }
+        if t == "AddPartInformation":
+            return {
+                "part_info": self.part_info_var.get(),
+                "expected_speed": self.expected_speed_var.get(),
             }
         return {}
 

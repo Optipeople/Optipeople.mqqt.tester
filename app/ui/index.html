@@ -96,6 +96,7 @@
           <button type="button" data-type="MachineState">Machine state</button>
           <button type="button" data-type="PartCounter">Part counter</button>
           <button type="button" data-type="Telemetry">Telemetry</button>
+          <button type="button" data-type="AddPartInformation">Part info</button>
         </div>
 
         <div class="panel" data-panel="MachineState">
@@ -135,6 +136,20 @@
             </label>
           </div>
           <p class="note">Max one message per 5 seconds, or the device is throttled.</p>
+        </div>
+
+        <div class="panel" data-panel="AddPartInformation">
+          <div class="row-part">
+            <label class="field">
+              <span class="field__label">Order / item / part</span>
+              <input id="partInfo" spellcheck="false" placeholder="OrderX;ItemY;PartZ">
+            </label>
+            <label class="field">
+              <span class="field__label" title="expectedSpeed in the payload">Speed (parts/h)</span>
+              <input id="expectedSpeed" type="number" min="0" step="1">
+            </label>
+          </div>
+          <p class="help">Sets the order, batch or unit the machine is running. Separate the parts with semicolons.</p>
         </div>
 
       </div>
