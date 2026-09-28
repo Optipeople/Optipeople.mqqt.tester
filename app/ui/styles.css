@@ -145,7 +145,13 @@ input:not([type="checkbox"]), select {
   box-shadow: var(--shadow-input); outline: none;
   user-select: text;
 }
-input:focus, select:focus { box-shadow: var(--focus); }
+textarea {
+  width: 100%; padding: 7px 10px; resize: vertical;
+  border: 0; border-radius: var(--r); background: var(--surface);
+  box-shadow: var(--shadow-input); outline: none;
+  user-select: text;
+}
+input:focus, select:focus, textarea:focus { box-shadow: var(--focus); }
 input:disabled { background: var(--g-50); color: #B9B8B7; }
 input[type="number"] { appearance: textfield; }
 input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
